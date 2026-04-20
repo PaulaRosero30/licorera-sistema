@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario — Licorera</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 20px; }
+    header span { color: #C9A84C; font-size: 14px; }
+
+    .contenedor { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+    .barra-top {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    input, select {
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #C9A84C; }
+    input[type="text"] { flex: 1; min-width: 200px; }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-gold { background: #C9A84C; color: white; }
+    .btn-gold:hover { background: #b8962e; }
+    .btn-rojo { background: #dc3545; color: white; }
+    .btn-azul { background: #1a1a2e; color: white; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 4px solid #C9A84C;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card.alerta { border-left-color: #dc3545; }
+    .stat-card h3 { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-card p { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+
+    table {
+      width: 100%;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+    thead { background: #1a1a2e; color: white; }
+    th { padding: 14px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 13px 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-bajo { background: #f8d7da; color: #721c24; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.activo { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal h2 { margin-bottom: 20px; color: #1a1a2e; }
+    .campo { margin-bottom: 14px; }
+    .campo label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 500; }
+    .campo input, .campo select { width: 100%; }
+    .fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-botones { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🍺 Sistema Licorera</h1>
+  <span>Módulo de Inventario</span>
+</header>
+
+<div class="contenedor">
+
+  <div class="stats">
+    <div class="stat-card">
+      <h3>Total Productos</h3>
+      <p id="total-productos">0</p>
+    </div>
+    <div class="stat-card">
+      <h3>Valor Inventario</h3>
+      <p id="valor-inventario">$0</p>
+    </div>
+    <div class="stat-card alerta">
+      <h3>⚠️ Stock Bajo</h3>
+      <p id="stock-bajo">0</p>
+    </div>
+  </div>
+
+  <div class="barra-top">
+    <input type="text" id="buscador" placeholder="🔍 Buscar producto por nombre o código..." oninput="filtrar()">
+    <select id="filtro-categoria" onchange="filtrar()">
+      <option value="">Todas las categorías</option>
+      <option value="Aguardiente">Aguardiente</option>
+      <option value="Ron">Ron</option>
+      <option value="Cerveza">Cerveza</option>
+      <option value="Vino">Vino</option>
+      <option value="Vodka">Vodka</option>
+      <option value="Whisky">Whisky</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <button class="btn btn-gold" onclick="abrirModal()">+ Agregar Producto</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código Barras</th>
+        <th>Producto</th>
+        <th>Categoría</th>
+        <th>Precio Costo</th>
+        <th>Precio Venta</th>
+        <th>Stock</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-productos">
+      <tr><td colspan="8" style="text-align:center; padding:40px; color:#aaa;">Cargando inventario...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- MODAL AGREGAR/EDITAR -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-titulo">Agregar Producto</h2>
+    <input type="hidden" id="producto-id">
+
+    <div class="campo">
+      <label>Código de Barras</label>
+      <input type="text" id="codigo_barras" placeholder="Escanea o escribe el código">
+    </div>
+    <div class="campo">
+      <label>Nombre del Producto *</label>
+      <input type="text" id="nombre" placeholder="Ej: Aguardiente Antioqueño 750ml">
+    </div>
+    <div class="fila-2">
+      <div class="campo">
+        <label>Categoría</label>
+        <select id="categoria">
+          <option value="Aguardiente">Aguardiente</option>
+          <option value="Ron">Ron</option>
+          <option value="Cerveza">Cerveza</option>
+          <option value="Vino">Vino</option>
+          <option value="Vodka">Vodka</option>
+          <option value="Whisky">Whisky</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label>Unidad</label>
+        <input type="text" id="unidad" placeholder="Ej: Botella, Sixpack">
+      </div>
+    </div>
+    <div class="fila-2">
+      <div class="campo">
+        <label>Precio Costo ($)</label>
+        <input type="number" id="precio_costo" placeholder="0">
+      </div>
+      <div class="campo">
+        <label>Precio Venta ($)</label>
+        <input type="number" id="precio_venta" placeholder="0">
+      </div>
+    </div>
+    <div class="fila-2">
+      <div class="campo">
+        <label>Stock Actual</label>
+        <input type="number" id="stock" placeholder="0">
+      </div>
+      <div class="campo">
+        <label>Stock Mínimo</label>
+        <input type="number" id="stock_minimo" placeholder="5">
+      </div>
+    </div>
+
+    <div class="modal-botones">
+      <button class="btn btn-rojo" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000/api/productos';
+  let productos = [];
+  let editandoId = null;
+
+  async function cargarProductos() {
+    try {
+      const res = await fetch(API);
+      productos = await res.json();
+      renderTabla(productos);
+      actualizarStats(productos);
+    } catch (e) {
+      document.getElementById('tabla-productos').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:red;padding:40px">❌ No se pudo conectar al servidor. ¿Está corriendo node src/index.js?</td></tr>';
+    }
+  }
+
+  function actualizarStats(lista) {
+    document.getElementById('total-productos').textContent = lista.length;
+    const valor = lista.reduce((acc, p) => acc + (p.precio_costo * p.stock), 0);
+    document.getElementById('valor-inventario').textContent = '$' + valor.toLocaleString('es-CO');
+    const bajos = lista.filter(p => p.stock_bajo).length;
+    document.getElementById('stock-bajo').textContent = bajos;
+  }
+
+  function renderTabla(lista) {
+    const tbody = document.getElementById('tabla-productos');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa">No hay productos registrados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(p => `
+      <tr>
+        <td style="font-family:monospace">${p.codigo_barras || '—'}</td>
+        <td><strong>${p.nombre}</strong></td>
+        <td>${p.categoria || '—'}</td>
+        <td>$${Number(p.precio_costo).toLocaleString('es-CO')}</td>
+        <td>$${Number(p.precio_venta).toLocaleString('es-CO')}</td>
+        <td><strong>${p.stock}</strong></td>
+        <td><span class="badge ${p.stock_bajo ? 'badge-bajo' : 'badge-ok'}">${p.stock_bajo ? '⚠️ Stock bajo' : '✅ OK'}</span></td>
+        <td>
+          <button class="btn btn-azul" style="padding:6px 12px;font-size:12px" onclick="editar(${p.id})">Editar</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filtrar() {
+    const texto = document.getElementById('buscador').value.toLowerCase();
+    const cat = document.getElementById('filtro-categoria').value;
+    const filtrados = productos.filter(p => {
+      const coincideTexto = p.nombre.toLowerCase().includes(texto) || (p.codigo_barras || '').includes(texto);
+      const coincideCat = cat === '' || p.categoria === cat;
+      return coincideTexto && coincideCat;
+    });
+    renderTabla(filtrados);
+  }
+
+  function abrirModal() {
+    editandoId = null;
+    document.getElementById('modal-titulo').textContent = 'Agregar Producto';
+    document.getElementById('producto-id').value = '';
+    ['codigo_barras','nombre','unidad','precio_costo','precio_venta','stock','stock_minimo'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('categoria').value = 'Aguardiente';
+    document.getElementById('modal').classList.add('activo');
+    document.getElementById('codigo_barras').focus();
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal').classList.remove('activo');
+  }
+
+  function editar(id) {
+    const p = productos.find(x => x.id === id);
+    if (!p) return;
+    editandoId = id;
+    document.getElementById('modal-titulo').textContent = 'Editar Producto';
+    document.getElementById('codigo_barras').value = p.codigo_barras || '';
+    document.getElementById('nombre').value = p.nombre;
+    document.getElementById('categoria').value = p.categoria || 'Otro';
+    document.getElementById('unidad').value = p.unidad || '';
+    document.getElementById('precio_costo').value = p.precio_costo;
+    document.getElementById('precio_venta').value = p.precio_venta;
+    document.getElementById('stock').value = p.stock;
+    document.getElementById('stock_minimo').value = p.stock_minimo;
+    document.getElementById('modal').classList.add('activo');
+  }
+
+  async function guardarProducto() {
+    const datos = {
+      codigo_barras: document.getElementById('codigo_barras').value,
+      nombre: document.getElementById('nombre').value,
+      categoria: document.getElementById('categoria').value,
+      unidad: document.getElementById('unidad').value,
+      precio_costo: document.getElementById('precio_costo').value,
+      precio_venta: document.getElementById('precio_venta').value,
+      stock: document.getElementById('stock').value,
+      stock_minimo: document.getElementById('stock_minimo').value,
+    };
+
+    if (!datos.nombre) return alert('El nombre del producto es obligatorio');
+
+    try {
+      if (editandoId) {
+        await fetch(`${API}/${editandoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+      } else {
+        await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+      }
+      cerrarModal();
+      cargarProductos();
+    } catch (e) {
+      alert('Error al guardar: ' + e.message);
+    }
+  }
+
+  cargarProductos();
+</script>
+</body>
+</html>

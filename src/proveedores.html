@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Proveedores — Licorera</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 20px; }
+    header span { color: #C9A84C; font-size: 14px; }
+
+    .nav {
+      background: #16213e;
+      padding: 10px 32px;
+      display: flex;
+      gap: 8px;
+    }
+    .nav a {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 4px;
+    }
+    .nav a:hover { background: #1a1a2e; color: white; }
+    .nav a.activo { background: #C9A84C; color: white; }
+
+    .contenedor { padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+    .barra-top {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    input {
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      flex: 1;
+    }
+    input:focus { border-color: #C9A84C; }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-gold { background: #C9A84C; color: white; }
+    .btn-gold:hover { background: #b8962e; }
+    .btn-rojo { background: #dc3545; color: white; }
+    .btn-azul { background: #1a1a2e; color: white; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 4px solid #C9A84C;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card h3 { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-card p { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+
+    table {
+      width: 100%;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+    thead { background: #1a1a2e; color: white; }
+    th { padding: 14px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 13px 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #fafafa; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.activo { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal h2 { margin-bottom: 20px; color: #1a1a2e; }
+    .campo { margin-bottom: 14px; }
+    .campo label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 500; }
+    .campo input { width: 100%; }
+    .modal-botones { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-overlay.activo { display: flex; }
+    .confirm-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .confirm-box p { margin-bottom: 20px; color: #333; }
+    .confirm-box .botones { display: flex; gap: 10px; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🍺 Sistema Licorera</h1>
+  <span>Módulo de Proveedores</span>
+</header>
+
+<nav class="nav">
+  <a href="inventario.html">📦 Inventario</a>
+  <a href="proveedores.html" class="activo">🚚 Proveedores</a>
+</nav>
+
+<div class="contenedor">
+
+  <div class="stats">
+    <div class="stat-card">
+      <h3>Total Proveedores</h3>
+      <p id="total-proveedores">0</p>
+    </div>
+    <div class="stat-card">
+      <h3>Con Pedidos</h3>
+      <p id="con-pedidos">0</p>
+    </div>
+  </div>
+
+  <div class="barra-top">
+    <input type="text" id="buscador" placeholder="🔍 Buscar proveedor por nombre o NIT..." oninput="filtrar()">
+    <button class="btn btn-gold" onclick="abrirModal()">+ Agregar Proveedor</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>NIT</th>
+        <th>Teléfono</th>
+        <th>Correo</th>
+        <th>Dirección</th>
+        <th>Pedidos</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-proveedores">
+      <tr><td colspan="7" style="text-align:center;padding:40px;color:#aaa">Cargando proveedores...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- MODAL AGREGAR/EDITAR -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-titulo">Agregar Proveedor</h2>
+    <input type="hidden" id="proveedor-id">
+
+    <div class="campo">
+      <label>Nombre *</label>
+      <input type="text" id="nombre" placeholder="Ej: Licores del Valle S.A.S">
+    </div>
+    <div class="campo">
+      <label>NIT</label>
+      <input type="text" id="nit" placeholder="Ej: 900123456-1">
+    </div>
+    <div class="campo">
+      <label>Teléfono</label>
+      <input type="text" id="telefono" placeholder="Ej: 3001234567">
+    </div>
+    <div class="campo">
+      <label>Correo</label>
+      <input type="email" id="correo" placeholder="Ej: ventas@proveedor.com">
+    </div>
+    <div class="campo">
+      <label>Dirección</label>
+      <input type="text" id="direccion" placeholder="Ej: Calle 10 # 20-30, Medellín">
+    </div>
+
+    <div class="modal-botones">
+      <button class="btn btn-rojo" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarProveedor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMAR ELIMINAR -->
+<div class="confirm-overlay" id="confirm">
+  <div class="confirm-box">
+    <p>¿Seguro que quieres inactivar este proveedor?</p>
+    <div class="botones">
+      <button class="btn btn-azul" onclick="cerrarConfirm()">Cancelar</button>
+      <button class="btn btn-rojo" onclick="confirmarEliminar()">Sí, inactivar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000/api/proveedores';
+  let proveedores = [];
+  let editandoId = null;
+  let eliminandoId = null;
+
+  async function cargarProveedores() {
+    try {
+      const res = await fetch(API);
+      proveedores = await res.json();
+      renderTabla(proveedores);
+      actualizarStats(proveedores);
+    } catch (e) {
+      document.getElementById('tabla-proveedores').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:red;padding:40px">❌ No se pudo conectar al servidor. ¿Está corriendo node src/index.js?</td></tr>';
+    }
+  }
+
+  function actualizarStats(lista) {
+    document.getElementById('total-proveedores').textContent = lista.length;
+    const conPedidos = lista.filter(p => p.total_pedidos > 0).length;
+    document.getElementById('con-pedidos').textContent = conPedidos;
+  }
+
+  function renderTabla(lista) {
+    const tbody = document.getElementById('tabla-proveedores');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#aaa">No hay proveedores registrados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(p => `
+      <tr>
+        <td><strong>${p.nombre}</strong></td>
+        <td>${p.nit || '—'}</td>
+        <td>${p.telefono || '—'}</td>
+        <td>${p.correo || '—'}</td>
+        <td>${p.direccion || '—'}</td>
+        <td style="text-align:center">${p.total_pedidos}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-azul" style="padding:6px 12px;font-size:12px" onclick="editar(${p.id})">Editar</button>
+          <button class="btn btn-rojo" style="padding:6px 12px;font-size:12px" onclick="abrirConfirm(${p.id})">Inactivar</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filtrar() {
+    const texto = document.getElementById('buscador').value.toLowerCase();
+    const filtrados = proveedores.filter(p =>
+      p.nombre.toLowerCase().includes(texto) || (p.nit || '').includes(texto)
+    );
+    renderTabla(filtrados);
+  }
+
+  function abrirModal() {
+    editandoId = null;
+    document.getElementById('modal-titulo').textContent = 'Agregar Proveedor';
+    ['nombre','nit','telefono','correo','direccion'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('modal').classList.add('activo');
+    document.getElementById('nombre').focus();
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal').classList.remove('activo');
+  }
+
+  function editar(id) {
+    const p = proveedores.find(x => x.id === id);
+    if (!p) return;
+    editandoId = id;
+    document.getElementById('modal-titulo').textContent = 'Editar Proveedor';
+    document.getElementById('nombre').value = p.nombre;
+    document.getElementById('nit').value = p.nit || '';
+    document.getElementById('telefono').value = p.telefono || '';
+    document.getElementById('correo').value = p.correo || '';
+    document.getElementById('direccion').value = p.direccion || '';
+    document.getElementById('modal').classList.add('activo');
+  }
+
+  async function guardarProveedor() {
+    const datos = {
+      nombre: document.getElementById('nombre').value,
+      nit: document.getElementById('nit').value,
+      telefono: document.getElementById('telefono').value,
+      correo: document.getElementById('correo').value,
+      direccion: document.getElementById('direccion').value,
+    };
+    if (!datos.nombre) return alert('El nombre del proveedor es obligatorio');
+    try {
+      if (editandoId) {
+        await fetch(`${API}/${editandoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+      } else {
+        await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+      }
+      cerrarModal();
+      cargarProveedores();
+    } catch (e) {
+      alert('Error al guardar: ' + e.message);
+    }
+  }
+
+  function abrirConfirm(id) {
+    eliminandoId = id;
+    document.getElementById('confirm').classList.add('activo');
+  }
+
+  function cerrarConfirm() {
+    document.getElementById('confirm').classList.remove('activo');
+    eliminandoId = null;
+  }
+
+  async function confirmarEliminar() {
+    try {
+      await fetch(`${API}/${eliminandoId}`, { method: 'DELETE' });
+      cerrarConfirm();
+      cargarProveedores();
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  cargarProveedores();
+</script>
+</body>
+</html>

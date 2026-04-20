@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ventas — Licorera</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 20px; }
+    header span { color: #C9A84C; font-size: 14px; }
+
+    .nav {
+      background: #16213e;
+      padding: 10px 32px;
+      display: flex;
+      gap: 8px;
+    }
+    .nav a {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 4px;
+    }
+    .nav a:hover { background: #1a1a2e; color: white; }
+    .nav a.activo { background: #C9A84C; color: white; }
+
+    .contenedor {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      padding: 24px 32px;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .panel-header {
+      background: #1a1a2e;
+      color: white;
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .panel-body { padding: 20px; }
+
+    input, select {
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus { border-color: #C9A84C; }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-gold { background: #C9A84C; color: white; }
+    .btn-gold:hover { background: #b8962e; }
+    .btn-rojo { background: #dc3545; color: white; }
+    .btn-verde { background: #28a745; color: white; }
+    .btn-azul { background: #1a1a2e; color: white; }
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 0;
+      width: auto;
+    }
+
+    .buscar-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .buscar-row input { flex: 1; }
+    .buscar-row button {
+      padding: 10px 16px;
+      background: #C9A84C;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    /* Tabla productos buscados */
+    .lista-productos {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+    .producto-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 13px;
+    }
+    .producto-item:hover { background: #fafafa; }
+    .producto-item .info { flex: 1; }
+    .producto-item .info strong { display: block; color: #1a1a2e; }
+    .producto-item .info span { color: #888; font-size: 12px; }
+    .producto-item .precio { color: #28a745; font-weight: 700; margin: 0 12px; }
+
+    /* Carrito */
+    .carrito-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .carrito-tabla th {
+      background: #f5f5f5;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #666;
+    }
+    .carrito-tabla td {
+      padding: 10px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    .carrito-tabla input[type="number"] {
+      width: 60px;
+      padding: 4px 8px;
+      text-align: center;
+    }
+
+    .total-box {
+      background: #1a1a2e;
+      color: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .total-box .fila {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #aaa;
+    }
+    .total-box .fila.grande {
+      font-size: 22px;
+      font-weight: 700;
+      color: #C9A84C;
+      margin-top: 8px;
+      border-top: 1px solid #333;
+      padding-top: 8px;
+    }
+
+    .medio-pago-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .medio-btn {
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .medio-btn:hover { border-color: #C9A84C; }
+    .medio-btn.seleccionado { border-color: #C9A84C; background: #FFF8E7; color: #1a1a2e; font-weight: 600; }
+
+    .campo-banco { display: none; margin-bottom: 12px; }
+    .campo-banco.visible { display: block; }
+
+    /* Historial */
+    .historial-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+    .historial-item:hover { background: #fafafa; }
+    .historial-item .fila-h { display: flex; justify-content: space-between; align-items: center; }
+    .historial-item .fecha { color: #aaa; font-size: 11px; margin-top: 4px; }
+    .badge-medio {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .badge-efectivo { background: #d4edda; color: #155724; }
+    .badge-transferencia { background: #cce5ff; color: #004085; }
+    .badge-tarjeta { background: #e2d9f3; color: #4a235a; }
+    .badge-mixto { background: #fff3cd; color: #856404; }
+    .badge-credito { background: #f8d7da; color: #721c24; }
+
+    .vacio { text-align: center; padding: 40px; color: #aaa; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🍺 Sistema Licorera</h1>
+  <span>Módulo de Ventas</span>
+</header>
+
+<nav class="nav">
+  <a href="inventario.html">📦 Inventario</a>
+  <a href="proveedores.html">🚚 Proveedores</a>
+  <a href="ventas.html" class="activo">💰 Ventas</a>
+</nav>
+
+<div class="contenedor">
+
+  <!-- COLUMNA IZQUIERDA: Buscador + Carrito -->
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header">🔍 Buscar Producto</div>
+      <div class="panel-body">
+        <div class="buscar-row">
+          <input type="text" id="buscador" placeholder="Escanea código de barras o escribe el nombre..." onkeydown="buscarEnter(event)">
+          <button onclick="buscarProducto()">Buscar</button>
+        </div>
+        <div class="lista-productos" id="lista-productos">
+          <div class="vacio">Escanea o busca un producto para agregarlo</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">🛒 Carrito de Venta</div>
+      <div class="panel-body">
+        <div id="carrito-vacio" class="vacio">No hay productos en la venta</div>
+        <table class="carrito-tabla" id="carrito-tabla" style="display:none">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Precio</th>
+              <th>Cant.</th>
+              <th>Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="carrito-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLUMNA DERECHA: Pago + Historial -->
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header">💳 Cobro</div>
+      <div class="panel-body">
+
+        <div class="total-box">
+          <div class="fila"><span>Productos:</span><span id="total-items">0</span></div>
+          <div class="fila grande"><span>TOTAL</span><span id="total-monto">$0</span></div>
+        </div>
+
+        <p style="font-size:12px;color:#666;margin-bottom:8px;font-weight:600">MEDIO DE PAGO</p>
+        <div class="medio-pago-grid">
+          <button class="medio-btn" onclick="seleccionarMedio('efectivo')">💵 Efectivo</button>
+          <button class="medio-btn" onclick="seleccionarMedio('transferencia')">📱 Transferencia</button>
+          <button class="medio-btn" onclick="seleccionarMedio('tarjeta')">💳 Tarjeta/Datáfono</button>
+          <button class="medio-btn" onclick="seleccionarMedio('mixto')">🔀 Pago Mixto</button>
+        </div>
+
+        <div class="campo-banco" id="campo-banco">
+          <label style="font-size:12px;color:#666;font-weight:600">BANCO / PLATAFORMA</label>
+          <select id="banco" style="margin-top:6px">
+            <option value="">Selecciona...</option>
+            <option value="PSE">PSE</option>
+            <option value="Bancolombia">Bancolombia</option>
+            <option value="Davivienda">Davivienda</option>
+            <option value="Nequi">Nequi</option>
+            <option value="Daviplata">Daviplata</option>
+            <option value="Otro">Otro banco</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:#666;font-weight:600">MESA (opcional)</label>
+          <input type="text" id="mesa" placeholder="Ej: Mesa 1, Barra, Para llevar" style="margin-top:6px">
+        </div>
+
+        <button class="btn btn-verde" onclick="cobrar()">✅ Registrar Venta</button>
+        <button class="btn btn-rojo" onclick="limpiarCarrito()">🗑️ Cancelar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">📋 Últimas Ventas</div>
+      <div id="historial-ventas">
+        <div class="vacio">Cargando...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API_PRODUCTOS = 'http://localhost:3000/api/productos';
+  const API_VENTAS = 'http://localhost:3000/api/ventas';
+
+  let carrito = [];
+  let medioSeleccionado = '';
+
+  // ── BUSCAR PRODUCTO ──
+  async function buscarProducto() {
+    const texto = document.getElementById('buscador').value.trim();
+    if (!texto) return;
+    try {
+      // Intentar por código de barras primero
+      let res = await fetch(`${API_PRODUCTOS}/barras/${texto}`);
+      if (res.ok) {
+        const producto = await res.json();
+        agregarAlCarrito(producto);
+        document.getElementById('buscador').value = '';
+        document.getElementById('lista-productos').innerHTML = '<div class="vacio">Escanea o busca un producto para agregarlo</div>';
+        return;
+      }
+      // Buscar por nombre
+      res = await fetch(API_PRODUCTOS);
+      const todos = await res.json();
+      const filtrados = todos.filter(p => p.nombre.toLowerCase().includes(texto.toLowerCase()));
+      renderListaProductos(filtrados);
+    } catch (e) {
+      alert('Error al buscar: ' + e.message);
+    }
+  }
+
+  function buscarEnter(e) {
+    if (e.key === 'Enter') buscarProducto();
+  }
+
+  function renderListaProductos(lista) {
+    const div = document.getElementById('lista-productos');
+    if (lista.length === 0) {
+      div.innerHTML = '<div class="vacio">No se encontraron productos</div>';
+      return;
+    }
+    div.innerHTML = lista.map(p => `
+      <div class="producto-item">
+        <div class="info">
+          <strong>${p.nombre}</strong>
+          <span>${p.codigo_barras || 'Sin código'} · Stock: ${p.stock}</span>
+        </div>
+        <span class="precio">$${Number(p.precio_venta).toLocaleString('es-CO')}</span>
+        <button class="btn-sm btn-gold" onclick='agregarAlCarrito(${JSON.stringify(p)})'>+ Agregar</button>
+      </div>
+    `).join('');
+  }
+
+  // ── CARRITO ──
+  function agregarAlCarrito(producto) {
+    const existente = carrito.find(i => i.producto_id === producto.id);
+    if (existente) {
+      existente.cantidad++;
+    } else {
+      carrito.push({
+        producto_id: producto.id,
+        nombre: producto.nombre,
+        precio_unitario: Number(producto.precio_venta),
+        cantidad: 1
+      });
+    }
+    renderCarrito();
+  }
+
+  function renderCarrito() {
+    const vacio = document.getElementById('carrito-vacio');
+    const tabla = document.getElementById('carrito-tabla');
+    const tbody = document.getElementById('carrito-body');
+
+    if (carrito.length === 0) {
+      vacio.style.display = 'block';
+      tabla.style.display = 'none';
+      actualizarTotal();
+      return;
+    }
+
+    vacio.style.display = 'none';
+    tabla.style.display = 'table';
+
+    tbody.innerHTML = carrito.map((item, i) => `
+      <tr>
+        <td>${item.nombre}</td>
+        <td>$${item.precio_unitario.toLocaleString('es-CO')}</td>
+        <td>
+          <input type="number" min="1" value="${item.cantidad}"
+            onchange="cambiarCantidad(${i}, this.value)">
+        </td>
+        <td><strong>$${(item.precio_unitario * item.cantidad).toLocaleString('es-CO')}</strong></td>
+        <td>
+          <button class="btn-sm btn-rojo" onclick="quitarItem(${i})">✕</button>
+        </td>
+      </tr>
+    `).join('');
+
+    actualizarTotal();
+  }
+
+  function cambiarCantidad(i, val) {
+    carrito[i].cantidad = parseInt(val) || 1;
+    renderCarrito();
+  }
+
+  function quitarItem(i) {
+    carrito.splice(i, 1);
+    renderCarrito();
+  }
+
+  function limpiarCarrito() {
+    carrito = [];
+    medioSeleccionado = '';
+    document.querySelectorAll('.medio-btn').forEach(b => b.classList.remove('seleccionado'));
+    document.getElementById('campo-banco').classList.remove('visible');
+    document.getElementById('mesa').value = '';
+    document.getElementById('buscador').value = '';
+    document.getElementById('lista-productos').innerHTML = '<div class="vacio">Escanea o busca un producto para agregarlo</div>';
+    renderCarrito();
+  }
+
+  function actualizarTotal() {
+    const total = carrito.reduce((acc, i) => acc + i.precio_unitario * i.cantidad, 0);
+    const items = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+    document.getElementById('total-monto').textContent = '$' + total.toLocaleString('es-CO');
+    document.getElementById('total-items').textContent = items;
+  }
+
+  // ── MEDIO DE PAGO ──
+  function seleccionarMedio(medio) {
+    medioSeleccionado = medio;
+    document.querySelectorAll('.medio-btn').forEach(b => b.classList.remove('seleccionado'));
+    event.target.classList.add('seleccionado');
+    const campoBanco = document.getElementById('campo-banco');
+    if (medio === 'transferencia' || medio === 'mixto') {
+      campoBanco.classList.add('visible');
+    } else {
+      campoBanco.classList.remove('visible');
+    }
+  }
+
+  // ── COBRAR ──
+  async function cobrar() {
+    if (carrito.length === 0) return alert('Agrega productos a la venta');
+    if (!medioSeleccionado) return alert('Selecciona un medio de pago');
+
+    const banco = document.getElementById('banco').value;
+    if ((medioSeleccionado === 'transferencia') && !banco) {
+      return alert('Selecciona el banco o plataforma de transferencia');
+    }
+
+    try {
+      const res = await fetch(API_VENTAS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: carrito,
+          medio_pago: medioSeleccionado,
+          banco: banco || null,
+          mesa: document.getElementById('mesa').value || null,
+          estado: 'pagada'
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        return alert('Error: ' + err.error);
+      }
+
+      const venta = await res.json();
+      alert(`✅ Venta #${venta.id} registrada por $${Number(venta.total).toLocaleString('es-CO')}`);
+      limpiarCarrito();
+      cargarHistorial();
+    } catch (e) {
+      alert('Error al registrar venta: ' + e.message);
+    }
+  }
+
+  // ── HISTORIAL ──
+  async function cargarHistorial() {
+    try {
+      const res = await fetch(API_VENTAS);
+      const ventas = await res.json();
+      const div = document.getElementById('historial-ventas');
+      if (ventas.length === 0) {
+        div.innerHTML = '<div class="vacio">No hay ventas registradas</div>';
+        return;
+      }
+      div.innerHTML = ventas.slice(0, 15).map(v => `
+        <div class="historial-item">
+          <div class="fila-h">
+            <strong>Venta #${v.id} ${v.mesa ? '· ' + v.mesa : ''}</strong>
+            <strong style="color:#28a745">$${Number(v.total).toLocaleString('es-CO')}</strong>
+          </div>
+          <div class="fila-h" style="margin-top:4px">
+            <span class="badge-medio badge-${v.medio_pago}">${v.medio_pago}${v.banco ? ' · ' + v.banco : ''}</span>
+            <span class="fecha">${new Date(v.fecha).toLocaleString('es-CO')}</span>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      document.getElementById('historial-ventas').innerHTML = '<div class="vacio" style="color:red">Error al cargar historial</div>';
+    }
+  }
+
+  // Iniciar
+  cargarHistorial();
+  document.getElementById('buscador').focus();
+</script>
+</body>
+</html>
