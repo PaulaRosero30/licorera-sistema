@@ -1,0 +1,10 @@
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Dependencias
+node_modules/
+
+# Logs
+*.log
