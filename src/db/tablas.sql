@@ -94,3 +94,32 @@ CREATE TABLE IF NOT EXISTS detalle_ventas (
   precio_unitario NUMERIC(12,2) NOT NULL,
   subtotal NUMERIC(12,2) NOT NULL
 );
+-- 9. MESAS
+CREATE TABLE IF NOT EXISTS mesas (
+  id SERIAL PRIMARY KEY,
+  numero VARCHAR(50) NOT NULL,
+  estado VARCHAR(20) DEFAULT 'abierta' CHECK (estado IN ('abierta', 'cerrada')),
+  creado_en TIMESTAMP DEFAULT NOW(),
+  cerrado_en TIMESTAMP
+);
+
+-- 10. DETALLES DE MESA
+CREATE TABLE IF NOT EXISTS detalles_mesa (
+  id SERIAL PRIMARY KEY,
+  mesa_id INTEGER REFERENCES mesas(id),
+  producto_id INTEGER REFERENCES productos(id),
+  cantidad INTEGER NOT NULL DEFAULT 1,
+  precio_unitario NUMERIC(12,2) NOT NULL,
+  persona VARCHAR(100) DEFAULT 'Sin especificar',
+  creado_en TIMESTAMP DEFAULT NOW()
+);
+
+-- 11. ABONOS
+CREATE TABLE IF NOT EXISTS abonos (
+  id SERIAL PRIMARY KEY,
+  venta_id INTEGER REFERENCES ventas(id),
+  monto NUMERIC(12,2) NOT NULL,
+  medio_pago VARCHAR(30),
+  banco VARCHAR(50),
+  fecha TIMESTAMP DEFAULT NOW()
+);
