@@ -10,7 +10,15 @@ app.use(express.json());
 // Servir archivos estáticos
 app.use(express.static('src'));
 
-// Rutas API
+// Rutas públicas (no requieren token)
+const auth = require('./routes/auth');
+app.use('/api/auth', auth);
+
+// Middleware de autenticación
+const { verificarToken } = require('./middleware/auth');
+app.use(verificarToken);
+
+// Rutas protegidas
 const productos = require('./routes/productos');
 const proveedores = require('./routes/proveedores');
 const ventas = require('./routes/ventas');
@@ -32,5 +40,4 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`✅ Conectado a PostgreSQL correctamente`);
 });
