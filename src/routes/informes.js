@@ -122,4 +122,35 @@ router.get('/resumen', async (req, res) => {
   }
 });
 
+// Informe de inventario con valor por costo y venta
+router.get('/inventario', async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      `SELECT 
+        nombre,
+        categoria,
+        codigo_barras,
+        stock,
+        precio_costo,
+        precio_venta,
+        stock * precio_costo AS valor_costo,
+        stock * precio_venta AS valor_venta,
+        stock * precio_venta - stock * precio_costo AS ganancia_potencial
+       FROM productos
+       WHERE activo = true
+       ORDER BY categoria ASC, nombre ASC`
+    );
+
+    const totales = resultado.rows.reduce((acc, p) => ({
+      total_costo: acc.total_costo + Number(p.valor_costo),
+      total_venta: acc.total_venta + Number(p.valor_venta),
+      total_ganancia: acc.total_ganancia + Number(p.ganancia_potencial)
+    }), { total_costo: 0, total_venta: 0, total_ganancia: 0 });
+
+    res.json({ productos: resultado.rows, totales });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
