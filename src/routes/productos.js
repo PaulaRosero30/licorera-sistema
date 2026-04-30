@@ -66,4 +66,17 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Inactivar producto
+router.delete('/:id', async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE productos SET activo = false WHERE id = $1`,
+      [req.params.id]
+    );
+    res.json({ mensaje: 'Producto inactivado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

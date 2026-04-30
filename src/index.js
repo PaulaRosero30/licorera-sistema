@@ -4,11 +4,8 @@ require('dotenv').config();
 require('./db/conexion');
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(express.json());
-
-// Servir archivos estáticos
-app.use(express.static('src'));
 
 // Rutas públicas (no requieren token)
 const auth = require('./routes/auth');
