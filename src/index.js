@@ -22,6 +22,8 @@ const ventas = require('./routes/ventas');
 const clientes = require('./routes/clientes');
 const mesas = require('./routes/mesas');
 const informes = require('./routes/informes');
+const caja = require('./routes/caja');
+
 
 app.use('/api/productos', productos);
 app.use('/api/proveedores', proveedores);
@@ -29,6 +31,7 @@ app.use('/api/ventas', ventas);
 app.use('/api/clientes', clientes);
 app.use('/api/mesas', mesas);
 app.use('/api/informes', informes);
+app.use('/api/caja', caja);
 
 app.get('/', (req, res) => {
   res.json({ mensaje: '🍺 Sistema Licorera funcionando correctamente' });
