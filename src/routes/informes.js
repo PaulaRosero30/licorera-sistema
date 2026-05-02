@@ -142,12 +142,52 @@ router.get('/inventario', async (req, res) => {
     );
 
     const totales = resultado.rows.reduce((acc, p) => ({
-      total_costo: acc.total_costo + Number(p.valor_costo),
-      total_venta: acc.total_venta + Number(p.valor_venta),
-      total_ganancia: acc.total_ganancia + Number(p.ganancia_potencial)
-    }), { total_costo: 0, total_venta: 0, total_ganancia: 0 });
+  total_costo: acc.total_costo + Number(p.valor_costo),
+  total_venta: acc.total_venta + Number(p.valor_venta),
+  total_ganancia: acc.total_ganancia + Number(p.ganancia_potencial),
+  total_unidades: acc.total_unidades + Number(p.stock)
+}), { total_costo: 0, total_venta: 0, total_ganancia: 0, total_unidades: 0 });
 
     res.json({ productos: resultado.rows, totales });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Informe de ventas por día, mes y año
+router.get('/ventas-periodo', async (req, res) => {
+  const { periodo } = req.query; // 'dia', 'mes', 'año'
+
+  let agrupacion, formato;
+
+  if (periodo === 'dia') {
+    agrupacion = `DATE(fecha)`;
+    formato = `TO_CHAR(DATE(fecha), 'DD/MM/YYYY')`;
+  } else if (periodo === 'mes') {
+    agrupacion = `TO_CHAR(fecha, 'YYYY-MM')`;
+    formato = `TO_CHAR(fecha, 'Month YYYY')`;
+  } else {
+    agrupacion = `EXTRACT(YEAR FROM fecha)`;
+    formato = `EXTRACT(YEAR FROM fecha)::text`;
+  }
+
+  try {
+    const resultado = await pool.query(
+      `SELECT 
+        ${formato} AS periodo,
+        COUNT(*) AS num_ventas,
+        SUM(v.total) AS ingresos_totales,
+        SUM(dv.cantidad * p.precio_costo) AS costo_total,
+        SUM(v.total) - SUM(dv.cantidad * p.precio_costo) AS ganancia_neta
+       FROM ventas v
+       JOIN detalle_ventas dv ON dv.venta_id = v.id
+       JOIN productos p ON p.id = dv.producto_id
+       WHERE v.estado IN ('pagada', 'pendiente', 'abonada')
+       GROUP BY ${agrupacion}
+       ORDER BY ${agrupacion} DESC
+       LIMIT 50`
+    );
+    res.json(resultado.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
