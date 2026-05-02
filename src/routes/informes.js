@@ -53,17 +53,49 @@ router.get('/ingresos', async (req, res) => {
   }
 });
 
-// Ingresos por medio de pago
+// Ingresos por medio de pago con filtro de fecha
 router.get('/ingresos-por-medio', async (req, res) => {
+  const { desde, hasta } = req.query;
+
+  let filtroFecha = '';
+  const params = [];
+
+  if (desde && hasta) {
+    filtroFecha = `AND DATE(fecha) BETWEEN $1 AND $2`;
+    params.push(desde, hasta);
+  }
+
   try {
     const resultado = await pool.query(
-      `SELECT medio_pago, banco, COUNT(*) as num_ventas, SUM(total) as total
+      `SELECT 
+        medio_pago,
+        banco,
+        COUNT(*) as num_ventas,
+        SUM(total) as total
        FROM ventas
        WHERE estado IN ('pagada', 'pendiente', 'abonada')
+       ${filtroFecha}
        GROUP BY medio_pago, banco
-       ORDER BY total DESC`
+       ORDER BY total DESC`,
+      params
     );
-    res.json(resultado.rows);
+
+    const resumenMedios = {
+      efectivo: 0,
+      transferencia: 0,
+      tarjeta: 0,
+      total: 0
+    };
+
+    resultado.rows.forEach(r => {
+      const monto = Number(r.total);
+      resumenMedios.total += monto;
+      if (r.medio_pago === 'efectivo') resumenMedios.efectivo += monto;
+      else if (r.medio_pago === 'transferencia') resumenMedios.transferencia += monto;
+      else if (r.medio_pago === 'tarjeta') resumenMedios.tarjeta += monto;
+    });
+
+    res.json({ detalle: resultado.rows, resumen: resumenMedios });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
