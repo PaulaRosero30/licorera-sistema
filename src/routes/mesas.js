@@ -6,7 +6,8 @@ const pool = require('../db/conexion');
 router.get('/activas', async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT m.*, COUNT(dm.id) as productos, SUM(dm.cantidad * dm.precio_unitario) as total
+      `SELECT m.*, COUNT(dm.id) as productos, 
+       COALESCE(SUM(dm.cantidad * dm.precio_unitario), 0) as total
        FROM mesas m
        LEFT JOIN detalles_mesa dm ON dm.mesa_id = m.id
        WHERE m.estado = 'abierta'
@@ -19,9 +20,9 @@ router.get('/activas', async (req, res) => {
   }
 });
 
-// Crear mesa
+// Crear mesa o cuenta
 router.post('/', async (req, res) => {
-  const { numero } = req.body;
+  const { numero, tipo } = req.body;
   try {
     const resultado = await pool.query(
       `INSERT INTO mesas (numero) VALUES ($1) RETURNING *`,
@@ -40,7 +41,7 @@ router.post('/:id/agregar', async (req, res) => {
     const resultado = await pool.query(
       `INSERT INTO detalles_mesa (mesa_id, producto_id, cantidad, precio_unitario, persona)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [req.params.id, producto_id, cantidad, precio_unitario, persona || 'Sin especificar']
+      [req.params.id, producto_id, cantidad, precio_unitario, persona || 'General']
     );
     res.json(resultado.rows[0]);
   } catch (error) {
@@ -52,7 +53,7 @@ router.post('/:id/agregar', async (req, res) => {
 router.get('/:id/detalles', async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT dm.*, p.nombre as producto_nombre
+      `SELECT dm.*, p.nombre
        FROM detalles_mesa dm
        JOIN productos p ON p.id = dm.producto_id
        WHERE dm.mesa_id = $1
@@ -78,35 +79,43 @@ router.delete('/:id/eliminar/:detalle_id', async (req, res) => {
   }
 });
 
-// Cerrar mesa y crear ventas por persona
+// Cerrar mesa con pagos mixtos por persona
 router.post('/:id/cerrar', async (req, res) => {
   const { pagos } = req.body;
+  // pagos = [{ persona, pagos: [{ medio_pago, banco, monto }] }]
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const detalles = await client.query(
-      `SELECT * FROM detalles_mesa WHERE mesa_id = $1`,
+      `SELECT dm.*, p.nombre FROM detalles_mesa dm
+       JOIN productos p ON p.id = dm.producto_id
+       WHERE dm.mesa_id = $1`,
       [req.params.id]
     );
 
     const detallesPorPersona = {};
     detalles.rows.forEach(d => {
-      if (!detallesPorPersona[d.persona]) {
-        detallesPorPersona[d.persona] = [];
-      }
+      if (!detallesPorPersona[d.persona]) detallesPorPersona[d.persona] = [];
       detallesPorPersona[d.persona].push(d);
     });
 
     const ventas = [];
     for (const [persona, items] of Object.entries(detallesPorPersona)) {
-      const total = items.reduce((acc, i) => acc + (i.cantidad * i.precio_unitario), 0);
-      const pago = pagos.find(p => p.persona === persona) || { medio_pago: 'efectivo', banco: null };
+      const total = items.reduce((acc, i) => acc + (i.cantidad * Number(i.precio_unitario)), 0);
+      const pagoPersona = pagos.find(p => p.persona === persona);
+      const pagosList = pagoPersona?.pagos || [{ medio_pago: 'efectivo', banco: null, monto: total }];
+
+      const totalPagado = pagosList.reduce((acc, p) => acc + Number(p.monto), 0);
+
+      // Usar el primer medio de pago como principal
+      const medioprincipal = pagosList[0]?.medio_pago || 'efectivo';
+      const bancoprincipal = pagosList[0]?.banco || null;
 
       const venta = await client.query(
         `INSERT INTO ventas (mesa, total, medio_pago, banco, estado)
          VALUES ($1,$2,$3,$4,$5) RETURNING id, total`,
-        [persona, total, pago.medio_pago, pago.banco || null, 'pagada']
+        [persona, total, medionatural, bancoprincipal, totalPagado >= total ? 'pagada' : 'pendiente']
       );
 
       for (const item of items) {
@@ -115,14 +124,13 @@ router.post('/:id/cerrar', async (req, res) => {
            VALUES ($1,$2,$3,$4,$5)`,
           [venta.rows[0].id, item.producto_id, item.cantidad, item.precio_unitario, item.cantidad * item.precio_unitario]
         );
-
         await client.query(
           `UPDATE productos SET stock = stock - $1 WHERE id = $2`,
           [item.cantidad, item.producto_id]
         );
       }
 
-      ventas.push({ persona, ventaId: venta.rows[0].id, total });
+      ventas.push({ persona, ventaId: venta.rows[0].id, total, totalPagado, diferencia: totalPagado - total });
     }
 
     await client.query(
@@ -131,7 +139,7 @@ router.post('/:id/cerrar', async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ mensaje: 'Mesa cerrada', ventas });
+    res.json({ mensaje: 'Cuenta cerrada', ventas });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });

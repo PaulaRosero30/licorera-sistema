@@ -225,4 +225,72 @@ router.get('/ventas-periodo', async (req, res) => {
   }
 });
 
+// Movimientos de caja
+router.get('/movimientos-caja', async (req, res) => {
+  const { desde, hasta } = req.query;
+  let filtro = '';
+  const params = [];
+
+  if (desde && hasta) {
+    filtro = `WHERE DATE(c.abierta_en) BETWEEN $1 AND $2`;
+    params.push(desde, hasta);
+  }
+
+  try {
+    const cajas = await pool.query(
+      `SELECT 
+        c.id,
+        u.nombre as cajero,
+        c.base,
+        c.total_efectivo_esperado,
+        c.total_efectivo_real,
+        c.descuadre,
+        c.estado,
+        c.abierta_en,
+        c.cerrada_en,
+        COALESCE((
+          SELECT SUM(v.total)
+          FROM ventas v
+          WHERE v.medio_pago = 'efectivo'
+          AND v.estado IN ('pagada', 'pendiente', 'abonada')
+          AND v.fecha >= c.abierta_en
+          AND (c.cerrada_en IS NULL OR v.fecha <= c.cerrada_en)
+        ), 0) as ventas_efectivo,
+        COALESCE((
+          SELECT SUM(v.total)
+          FROM ventas v
+          WHERE v.medio_pago = 'transferencia'
+          AND v.estado IN ('pagada', 'pendiente', 'abonada')
+          AND v.fecha >= c.abierta_en
+          AND (c.cerrada_en IS NULL OR v.fecha <= c.cerrada_en)
+        ), 0) as ventas_transferencia,
+        COALESCE((
+          SELECT SUM(v.total)
+          FROM ventas v
+          WHERE v.medio_pago = 'tarjeta'
+          AND v.estado IN ('pagada', 'pendiente', 'abonada')
+          AND v.fecha >= c.abierta_en
+          AND (c.cerrada_en IS NULL OR v.fecha <= c.cerrada_en)
+        ), 0) as ventas_tarjeta,
+        COALESCE((
+          SELECT COUNT(*)
+          FROM ventas v
+          WHERE v.estado IN ('pagada', 'pendiente', 'abonada')
+          AND v.fecha >= c.abierta_en
+          AND (c.cerrada_en IS NULL OR v.fecha <= c.cerrada_en)
+        ), 0) as num_ventas
+       FROM cajas c
+       JOIN usuarios u ON u.id = c.usuario_id
+       ${filtro}
+       ORDER BY c.abierta_en DESC
+       LIMIT 50`,
+      params
+    );
+
+    res.json(cajas.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
