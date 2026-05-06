@@ -78,4 +78,70 @@ router.get('/:id/detalle', async (req, res) => {
   }
 });
 
+// Anular venta
+router.post('/:id/anular', async (req, res) => {
+  const { motivo } = req.body;
+  if (!motivo || motivo.trim() === '') {
+    return res.status(400).json({ error: 'El motivo de anulación es requerido' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Verificar que la venta existe y no está ya anulada
+    const ventaRes = await client.query(
+      `SELECT * FROM ventas WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (ventaRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Venta no encontrada' });
+    }
+
+    const venta = ventaRes.rows[0];
+
+    if (venta.estado === 'anulada') {
+      return res.status(400).json({ error: 'La venta ya está anulada' });
+    }
+
+    // Obtener detalle de la venta
+    const detalles = await client.query(
+      `SELECT * FROM detalle_ventas WHERE venta_id = $1`,
+      [req.params.id]
+    );
+
+    // Devolver stock
+    for (const item of detalles.rows) {
+      await client.query(
+        `UPDATE productos SET stock = stock + $1 WHERE id = $2`,
+        [item.cantidad, item.producto_id]
+      );
+    }
+
+    // Anular venta
+    await client.query(
+      `UPDATE ventas SET estado = 'anulada', motivo_anulacion = $1 WHERE id = $2`,
+      [motivo, req.params.id]
+    );
+
+    // Si tenía cliente con deuda, revertir saldo
+    if (venta.cliente_id && venta.estado === 'pendiente') {
+      await client.query(
+        `UPDATE clientes SET saldo_deuda = saldo_deuda - $1 WHERE id = $2`,
+        [venta.total, venta.cliente_id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Venta anulada correctamente', venta_id: req.params.id });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+
 module.exports = router;

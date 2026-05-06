@@ -115,7 +115,7 @@ router.post('/:id/cerrar', async (req, res) => {
       const venta = await client.query(
         `INSERT INTO ventas (mesa, total, medio_pago, banco, estado)
          VALUES ($1,$2,$3,$4,$5) RETURNING id, total`,
-        [persona, total, medionatural, bancoprincipal, totalPagado >= total ? 'pagada' : 'pendiente']
+        [persona, total, medioprincipal, bancoprincipal, totalPagado >= total ? 'pagada' : 'pendiente']
       );
 
       for (const item of items) {
